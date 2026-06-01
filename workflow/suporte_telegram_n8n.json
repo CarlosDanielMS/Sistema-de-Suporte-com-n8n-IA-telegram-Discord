@@ -1,0 +1,215 @@
+{
+  "meta": {
+    "instanceId": "suporte-ia-projeto-final"
+  },
+  "name": "Suporte IA - Telegram + Discord",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 320],
+      "webhookId": "a1b2c3d4-0001-4000-8000-000000000099",
+      "parameters": {
+        "updates": ["message"]
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000002",
+      "name": "Chamar Agente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "http://agente:8000/perguntar",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "pergunta",
+              "value": "={{ $json.message.text }}"
+            },
+            {
+              "name": "usuario_id",
+              "value": "={{ $json.message.from.username || $json.message.from.first_name || String($json.message.from.id) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000003",
+      "name": "Consolidar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 320],
+      "parameters": {
+        "jsCode": "const trigger = $('Telegram Trigger').first().json;\nconst agente  = $input.first().json;\n\nreturn [{\n  json: {\n    chat_id:         trigger.message.chat.id,\n    usuario:         trigger.message.from.username || trigger.message.from.first_name || String(trigger.message.from.id),\n    pergunta:        trigger.message.text || '',\n    resposta:        agente.resposta || '',\n    urgencia:        (agente.urgencia || 'baixa').toLowerCase().trim(),\n    fontes:          Array.isArray(agente.fontes) ? agente.fontes.join(', ') : '',\n    latencia_s:      agente.latencia_s || 0,\n    tools_utilizadas: Array.isArray(agente.tools_utilizadas) ? agente.tools_utilizadas.join(', ') : '',\n    timestamp:       new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000004",
+      "name": "Urgência Alta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 320],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-urgencia-alta",
+              "leftValue": "={{ $json.urgencia }}",
+              "rightValue": "alta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000005",
+      "name": "Notificar Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 120],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: '🚨 **Ticket Urgente via Telegram**', embeds: [{ title: 'Detalhes do Ticket', color: 16711680, fields: [{ name: 'Usuário', value: String($json.usuario), inline: true }, { name: 'Urgência', value: '🔴 ALTA', inline: true }, { name: 'Pergunta', value: String($json.pergunta) }, { name: 'Resposta do Agente', value: String($json.resposta).substring(0, 1000) }, { name: 'Latência', value: $json.latencia_s + 's', inline: true }, { name: 'Fontes', value: $json.fontes || 'nenhuma', inline: true }], footer: { text: String($json.timestamp) } }] }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000006",
+      "name": "Telegram — Aviso Urgente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 320],
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ '⚠️ <b>Ticket urgente registrado!</b>\\n\\nSua solicitação foi encaminhada para o time de suporte.\\n\\n<b>Resposta inicial:</b>\\n' + $json.resposta + '\\n\\n<i>Fontes: ' + ($json.fontes || 'documentação interna') + '</i>' }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000007",
+      "name": "Telegram — Resposta Normal",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 520],
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.resposta + '\\n\\n<i>Fontes: ' + ($json.fontes || 'documentação interna') + '</i>\\n<i>Latência: ' + $json.latencia_s + 's</i>' }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000008",
+      "name": "Salvar no Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1440, 520],
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tickets",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Postgres Suporte"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [{ "node": "Chamar Agente", "type": "main", "index": 0 }]
+      ]
+    },
+    "Chamar Agente": {
+      "main": [
+        [{ "node": "Consolidar Dados", "type": "main", "index": 0 }]
+      ]
+    },
+    "Consolidar Dados": {
+      "main": [
+        [{ "node": "Urgência Alta?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Urgência Alta?": {
+      "main": [
+        [
+          { "node": "Notificar Discord",       "type": "main", "index": 0 },
+          { "node": "Telegram — Aviso Urgente","type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Telegram — Resposta Normal", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram — Resposta Normal": {
+      "main": [
+        [{ "node": "Salvar no Postgres", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

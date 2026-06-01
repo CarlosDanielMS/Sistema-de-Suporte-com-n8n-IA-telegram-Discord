@@ -1,0 +1,42 @@
+[
+  {
+    "pergunta": "Como solicito férias?",
+    "resposta_esperada": "Férias devem ser solicitadas pelo sistema de RH, acessado via portal do colaborador em rh.techcorp.com.br. Após aprovação do gestor, o RH notifica a TI automaticamente — não é necessário abrir chamado de TI para férias."
+  },
+  {
+    "pergunta": "Esqueci minha senha e não consigo acessar nada. O que faço?",
+    "resposta_esperada": "Acesse senha.techcorp.com.br de qualquer dispositivo, clique em 'Esqueci minha senha' e confirme sua identidade via código enviado ao e-mail pessoal cadastrado no RH. Se não tiver acesso ao e-mail pessoal, ligue para (11) 4002-8922, opção 1."
+  },
+  {
+    "pergunta": "Minha conta foi bloqueada após várias tentativas de login. Como desbloquear?",
+    "resposta_esperada": "A conta é bloqueada após 5 tentativas malsucedidas. Para desbloquear, acesse suporte.techcorp.com.br → Desbloqueio de Conta, ou ligue para (11) 4002-8922 opção 1. O desbloqueio é feito em até 15 minutos em horário comercial (08h–18h)."
+  },
+  {
+    "pergunta": "Como configuro a VPN para trabalhar de casa?",
+    "resposta_esperada": "Instale o Cisco AnyConnect via Central de Software. No campo VPN Server, insira vpn.techcorp.com.br. Autentique-se com suas credenciais corporativas mais o código MFA. Após conexão, todos os acessos internos estarão disponíveis."
+  },
+  {
+    "pergunta": "Recebi um e-mail suspeito com link estranho. O que devo fazer?",
+    "resposta_esperada": "Não clique em links nem abra anexos. Encaminhe o e-mail como anexo para segurança@techcorp.com.br e depois o delete. Se já clicou em algo, desconecte imediatamente da rede e ligue para (11) 4002-8922 opção 2, informando que é incidente de segurança."
+  },
+  {
+    "pergunta": "Preciso instalar um software que não está na Central de Software. Como faço?",
+    "resposta_esperada": "Abra chamado em suporte.techcorp.com.br com a categoria 'Software / Licença'. Inclua o nome do software, justificativa de uso e aprovação do gestor (pode ser por e-mail em anexo). A TI e a equipe de Segurança avaliarão em até 5 dias úteis."
+  },
+  {
+    "pergunta": "Posso usar meu computador pessoal para acessar o SAP ou drives de rede remotamente?",
+    "resposta_esperada": "Não. Para acessar sistemas internos como SAP e drives de rede, é obrigatório usar equipamento corporativo com VPN. O computador pessoal só pode ser usado via browser para o M365 (Outlook e Teams). Nunca instale VPN corporativa em dispositivos pessoais sem autorização da TI."
+  },
+  {
+    "pergunta": "Meu notebook está com defeito. Como abro um chamado?",
+    "resposta_esperada": "Acesse suporte.techcorp.com.br → Hardware / Manutenção e informe o número de patrimônio (etiqueta no equipamento, começa com TC-). Um técnico agendará visita em até 2 dias úteis. Lembre-se de fazer backup dos dados no OneDrive antes, pois isso é responsabilidade do colaborador."
+  },
+  {
+    "pergunta": "Como configuro o e-mail corporativo no meu celular?",
+    "resposta_esperada": "Instale o app Microsoft Outlook (iOS ou Android), adicione conta e insira seu e-mail corporativo. O app detecta a configuração automaticamente via autodiscover. Autentique com credenciais corporativas e MFA se solicitado."
+  },
+  {
+    "pergunta": "O que acontece com minha conta e meus dados se eu for desligado da empresa?",
+    "resposta_esperada": "No dia do desligamento, a TI revoga imediatamente todas as credenciais (AD, VPN e SaaS), faz backup dos dados do OneDrive por 90 dias (disponível ao gestor mediante solicitação formal) e transfere a caixa de e-mail para o gestor imediato por 30 dias. O equipamento patrimonial é recolhido pelo RH com apoio da TI."
+  }
+]

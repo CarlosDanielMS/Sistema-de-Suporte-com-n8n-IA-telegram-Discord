@@ -1,0 +1,182 @@
+{
+  "name": "Suporte IA - Tickets",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "198M0XWcOlQDi9AL200Bwh-44ceYPiRBJuEkekyFelTo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Respostas ao formulário 1",
+          "mode": "name"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Suporte TI",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [240, 320],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/perguntar",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "pergunta",
+              "value": "={{ $json['Pergunta'] }}"
+            },
+            {
+              "name": "usuario_id",
+              "value": "={{ $json['Seu e-mail'] }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Chamar Agente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const formItems = $('Suporte TI').all();\n\nreturn $input.all().map((agente_item, index) => {\n  const agente = agente_item.json;\n  const form = formItems[index].json;\n\n  return {\n    json: {\n      timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),\n      usuario: form['Seu e-mail'] || '',\n      pergunta: form['Pergunta'] || '',\n      resposta: agente.resposta || '',\n      urgencia: agente.urgencia || 'baixa',\n      fontes: Array.isArray(agente.fontes) ? agente.fontes.join(', ') : '',\n      latencia_s: agente.latencia_s || 0,\n      tools_utilizadas: Array.isArray(agente.tools_utilizadas) ? agente.tools_utilizadas.join(', ') : ''\n    }\n  };\n});"
+      },
+      "id": "f7a8b9c0-d1e2-3456-7890-abcdef012345",
+      "name": "Consolidar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-urgencia-alta",
+              "leftValue": "={{ $json.urgencia }}",
+              "rightValue": "alta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Urgência Alta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1507851003159117944/r7Zkf06mq5P9by366zQAcXklfNI_M14_i4XVwCZQIXPDzwd80sPJTFdzaO7WlLrCdYyg",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "=🚨 **Ticket Urgente**\n\n**Usuário:** {{ $json.usuario }}\n**Pergunta:** {{ $json.pergunta }}\n\n**Resposta:** {{ $json.resposta }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0123-def0-234567890123",
+      "name": "Notificar Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jN4dUadhu8cnCnQUUFhIKX0Fx24q9nXesKVLzuilep8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Página1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "usuario": "={{ $json.usuario }}",
+            "pergunta": "={{ $json.pergunta }}",
+            "resposta": "={{ $json.resposta }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "fontes": "={{ $json.fontes }}",
+            "latencia_s": "={{ $json.latencia_s }}",
+            "tools_utilizadas": "={{ $json.tools_utilizadas }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+      "name": "Salvar no Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [1120, 440],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_NAS_CREDENCIAIS_DO_N8N",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Suporte TI": {
+      "main": [[{ "node": "Chamar Agente", "type": "main", "index": 0 }]]
+    },
+    "Chamar Agente": {
+      "main": [[{ "node": "Consolidar Dados", "type": "main", "index": 0 }]]
+    },
+    "Consolidar Dados": {
+      "main": [[{ "node": "Urgência Alta?", "type": "main", "index": 0 }]]
+    },
+    "Urgência Alta?": {
+      "main": [
+        [{ "node": "Notificar Discord", "type": "main", "index": 0 }],
+        [{ "node": "Salvar no Sheets", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

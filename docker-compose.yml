@@ -1,0 +1,94 @@
+services:
+
+  # ── PostgreSQL (banco de tickets) ────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: suporte_ia
+      POSTGRES_USER: ${POSTGRES_USER:-suporte}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suporte123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-suporte} -d suporte_ia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Agente Python (FastAPI + RAG + ChromaDB) ─────────────────────────────
+  agente:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./documentos:/app/documentos     # PDFs a serem indexados
+      - ./chroma_db:/app/chroma_db       # banco vetorial persistente
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Ingestão de PDFs (roda uma vez e encerra) ────────────────────────────
+  # Uso: docker compose run --rm ingestao
+  ingestao:
+    build: .
+    env_file: .env
+    volumes:
+      - ./documentos:/app/documentos
+      - ./chroma_db:/app/chroma_db
+    command: python src/ingestao.py
+    profiles:
+      - tools
+
+  # ── Avaliação RAGAS (roda uma vez e encerra) ─────────────────────────────
+  # Uso: docker compose run --rm ragas
+  ragas:
+    build: .
+    env_file: .env
+    volumes:
+      - ./documentos:/app/documentos
+      - ./chroma_db:/app/chroma_db
+    command: python avaliacao/rodar_ragas.py
+    profiles:
+      - tools
+
+  # ── n8n (orquestrador de workflows) ──────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflow:/workflow
+    depends_on:
+      agente:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
+  postgres_data:
